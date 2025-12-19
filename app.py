@@ -15,7 +15,7 @@ st.set_page_config(
 
 # Initialize Memory
 if 'audit_results' not in st.session_state:
-    st.session_state.audit_results = None
+    st.session_state.audit_results = []
 
 # --- 2. SIDEBAR CONFIGURATION ---
 with st.sidebar:
@@ -42,23 +42,20 @@ with st.sidebar:
     dark_mode = st.toggle("Dark Mode", value=False)
     
     st.markdown("---")
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.0</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.1</p>', unsafe_allow_html=True)
 
 # --- 3. DYNAMIC CSS STYLING ---
-# We define colors based on the toggle state
 if dark_mode:
     # DARK MODE PALETTE
     main_bg = "#0F0F0F"
     text_color = "#FFFFFF"
     input_bg = "#1A1A1A"
     input_border = "#333333"
-    card_issue_bg = "#2A1C1C" # Dark Muted Red
-    card_issue_border = "#EF4444"
+    card_issue_bg = "#2A1C1C"
     card_issue_text = "#FCA5A5"
-    card_fix_bg = "#1C2A21" # Dark Muted Green
-    card_fix_border = "#22C55E"
+    card_fix_bg = "#1C2A21"
     card_fix_text = "#86EFAC"
-    button_bg = "#C5A065" # Gold for Dark Mode
+    button_bg = "#C5A065" 
     button_text = "#000000"
     subtitle_color = "#AAAAAA"
 else:
@@ -68,12 +65,10 @@ else:
     input_bg = "#F9FAFB"
     input_border = "#E5E7EB"
     card_issue_bg = "#FEF2F2"
-    card_issue_border = "#FEE2E2"
     card_issue_text = "#991B1B"
     card_fix_bg = "#F0FDF4"
-    card_fix_border = "#DCFCE7"
     card_fix_text = "#166534"
-    button_bg = "#000000" # Black for Light Mode
+    button_bg = "#000000"
     button_text = "#FFFFFF"
     subtitle_color = "#666666"
 
@@ -91,15 +86,10 @@ st.markdown(f"""
     }}
 
     /* --- TYPOGRAPHY --- */
-    .stApp, p, div, input, label, span {{
+    /* We exclude buttons from the global override so their text stays visible */
+    .stApp, p, div, input, label, span, h1, h2, h3, h4, strong {{
         font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
-        color: {text_color} !important;
-    }}
-    
-    h1, h2, h3, h4, strong {{
-        font-family: 'ABC Medium', 'Inter', sans-serif !important;
-        font-weight: 600;
-        color: {text_color} !important;
+        color: {text_color};
     }}
     
     p.subtitle-text {{
@@ -108,7 +98,7 @@ st.markdown(f"""
         font-weight: 300;
     }}
 
-    /* --- SIDEBAR (Always Dark for Consistency) --- */
+    /* --- SIDEBAR (Always Dark) --- */
     [data-testid="stSidebar"] {{
         background-color: #0F0F0F !important; 
         border-right: 1px solid #222;
@@ -127,21 +117,23 @@ st.markdown(f"""
         color: {text_color} !important;
         border: 1px solid {input_border} !important;
     }}
-    
-    /* --- BUTTONS --- */
+
+    /* --- BUTTONS (Fix for invisible text) --- */
     div.stButton > button {{
         background-color: {button_bg} !important;
-        color: {button_text} !important;
         border-radius: 8px;
         padding: 0.6rem 1.8rem;
         font-weight: 500;
         border: 1px solid {button_bg} !important;
         transition: transform 0.1s;
     }}
+    /* Force ALL text inside buttons to match the button_text color */
+    div.stButton > button * {{
+        color: {button_text} !important;
+    }}
     div.stButton > button:hover {{
         transform: translateY(-2px);
         opacity: 0.9;
-        color: {button_text} !important;
     }}
 
     /* --- CARDS --- */
@@ -151,22 +143,19 @@ st.markdown(f"""
         padding: 16px;
         border-radius: 6px 6px 0 0;
     }}
-    .issue-text {{ color: {card_issue_text} !important; font-weight: 600; }}
-    
     .solution-card {{
         background-color: {card_fix_bg};
         border-left: 4px solid #22C55E;
         padding: 16px;
         border-radius: 0 0 6px 6px;
     }}
-    .fix-text {{ color: {card_fix_text} !important; font-family: monospace; font-size: 0.9rem; }}
-
-    /* --- MISC --- */
-    .block-container {{ padding-top: 2rem; padding-bottom: 3rem; }}
-    .stCheckbox {{ padding-top: 30px; }}
+    
+    /* --- PADDING & SPACING --- */
+    /* Increased top padding to 6rem to fix the 'too close to top' issue */
+    .block-container {{ padding-top: 6rem; padding-bottom: 3rem; }}
     
     /* Results Header */
-    h3.results-header {{ color: {text_color} !important; }}
+    h3.results-header {{ color: {text_color} !important; margin-top: 2rem; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -174,7 +163,9 @@ st.markdown(f"""
 st.markdown('<h1 class="main-title">QA Co-Pilot</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle-text">Automated audit for PRO WD</p>', unsafe_allow_html=True)
 
-st.markdown("##") 
+# Added standard spacer instead of markdown "##"
+st.write("") 
+st.write("") 
 
 url_input = st.text_input("Website URL", placeholder="https://presencepreview.site/...")
 
@@ -219,41 +210,3 @@ if st.button("Start Audit"):
                 result = model.generate_content(prompt)
                 clean_json = result.text.replace("```json", "").replace("```", "").strip()
                 st.session_state.audit_results = json.loads(clean_json)
-                
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-# --- 5. RESULTS ---
-if st.session_state.audit_results:
-    st.markdown('<h3 class="results-header">Results</h3>', unsafe_allow_html=True)
-    results = st.session_state.audit_results
-    
-    if len(results) == 0:
-        st.success("✅ No issues found!")
-    
-    for i, item in enumerate(results):
-        col_check, col_content = st.columns([0.5, 9.5])
-        with col_check:
-            is_checked = st.checkbox("", key=f"fix_{i}")
-        with col_content:
-            opacity = "0.4" if is_checked else "1.0"
-            st.markdown(f"""
-            <div style="opacity: {opacity}; margin-bottom: 20px;">
-                <div class="issue-card">
-                    <span class="card-label" style="color:{card_issue_text};">🔴 {item['type']} • {item['loc']}</span>
-                    <div class="issue-text">{item['issue']}</div>
-                </div>
-                <div class="solution-card">
-                    <span class="card-label" style="color:{card_fix_text};">🟢 SUGGESTED FIX</span>
-                    <div class="fix-text">{item['fix']}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    if results:
-        st.download_button(
-            "Download CSV", 
-            pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
-            "audit.csv", 
-            "text/csv"
-        )
