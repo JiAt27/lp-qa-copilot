@@ -107,7 +107,7 @@ if st.button("RUN AUDIT") and url_input and api_key:
     try:
         genai.configure(api_key=api_key)
         # Using the latest available flash model
-        model = genai.GenerativeModel('gemini-2.0-flash-exp') 
+        model = genai.GenerativeModel('gemini-2.5-flash') 
         # If 2.0 fails, fallback to 1.5 in your mind, but 2.0-flash-exp is current bleeding edge speed
     except Exception as e:
         st.error(f"API Key Error: {e}")
