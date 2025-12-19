@@ -42,7 +42,7 @@ with st.sidebar:
     dark_mode = st.toggle("Dark Mode", value=False)
     
     st.markdown("---")
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.1</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.2</p>', unsafe_allow_html=True)
 
 # --- 3. DYNAMIC CSS STYLING ---
 if dark_mode:
@@ -203,10 +203,4 @@ if st.button("Start Audit"):
                 RETURN JSON ONLY:
                 [
                     {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}},
-                    {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc": "Footer"}}
-                ]
-                """
-                
-                result = model.generate_content(prompt)
-                clean_json = result.text.replace("```json", "").replace("```", "").strip()
-                st.session_state.audit_results = json.loads(clean_json)
+                    {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc
