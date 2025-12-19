@@ -203,4 +203,49 @@ if st.button("Start Audit"):
                 RETURN JSON ONLY:
                 [
                     {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}},
-                    {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc
+                    {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc": "Footer"}}
+                ]
+                """
+                
+                result = model.generate_content(prompt)
+                clean_json = result.text.replace("```json", "").replace("```", "").strip()
+                st.session_state.audit_results = json.loads(clean_json)
+                
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+# --- 5. RESULTS ---
+if st.session_state.audit_results:
+    st.markdown('<h3 class="results-header">Results</h3>', unsafe_allow_html=True)
+    results = st.session_state.audit_results
+    
+    if len(results) == 0:
+        st.success("✅ No issues found!")
+    
+    for i, item in enumerate(results):
+        col_check, col_content = st.columns([0.5, 9.5])
+        with col_check:
+            # Simplified checkbox key to avoid "Key" errors
+            is_checked = st.checkbox("", key=f"check_{i}")
+        with col_content:
+            opacity = "0.4" if is_checked else "1.0"
+            st.markdown(f"""
+            <div style="opacity: {opacity}; margin-bottom: 20px;">
+                <div class="issue-card">
+                    <span class="card-label" style="color:{card_issue_text};">🔴 {item['type']} • {item['loc']}</span>
+                    <div style="color:{card_issue_text}; font-weight:600;">{item['issue']}</div>
+                </div>
+                <div class="solution-card">
+                    <span class="card-label" style="color:{card_fix_text};">🟢 SUGGESTED FIX</span>
+                    <div style="color:{card_fix_text}; font-family:monospace;">{item['fix']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if results:
+        st.download_button(
+            "Download CSV", 
+            pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
+            "audit.csv", 
+            "text/csv"
+        )
