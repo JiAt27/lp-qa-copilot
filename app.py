@@ -101,7 +101,7 @@ st.markdown(STYLING_CSS, unsafe_allow_html=True)
 def init_gemini(api_key):
     """Initializes the Gemini client."""
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-1.5-flash')
+    return model = genai.GenerativeModel('gemini-2.5-flash')
 
 def crawl_website(url):
     """Fetches HTML and extracts text and links."""
