@@ -17,33 +17,58 @@ st.set_page_config(
 if 'audit_results' not in st.session_state:
     st.session_state.audit_results = None
 
-# --- 2. LUXURY PRESENCE BRAND STYLING (Onboarding Hub Theme) ---
+# --- 2. LUXURY PRESENCE BRAND STYLING (High Contrast Theme) ---
 st.markdown("""
 <style>
-    /* IMPORT FONTS: Inter (UI) and Playfair Display (Headers) */
+    /* IMPORT FONTS */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap');
 
-    /* BASE THEME - LIGHT MODE */
+    /* --- MAIN CONTENT AREA (Light/Onboarding Hub) --- */
     .stApp {
         background-color: #FFFFFF;
         color: #111111;
         font-family: 'Inter', sans-serif;
     }
 
-    /* TYPOGRAPHY */
+    /* --- SIDEBAR (Dark/Premium) --- */
+    [data-testid="stSidebar"] {
+        background-color: #0F0F0F; /* LP Almost Black */
+        border-right: 1px solid #222;
+    }
+    
+    /* SIDEBAR TEXT COLOR OVERRIDE */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] label, 
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] div {
+        color: #FFFFFF !important;
+    }
+
+    /* LOGO COLOR INVERSION (Black PNG -> White) */
+    [data-testid="stSidebar"] img {
+        filter: invert(1) brightness(2); /* This turns a black logo white */
+    }
+
+    /* SIDEBAR INPUT FIELDS (Dark theme) */
+    [data-testid="stSidebar"] .stTextInput > div > div > input {
+        background-color: #1A1A1A;
+        color: #FFFFFF;
+        border: 1px solid #333;
+    }
+
+    /* --- TYPOGRAPHY & COMPONENTS --- */
     h1 {
         font-family: 'Playfair Display', serif;
         font-weight: 700;
-        font-size: 2.2rem;
+        font-size: 2.5rem;
         color: #000000;
         margin-bottom: 0rem;
     }
     
-    /* REMOVE DEFAULT STREAMLIT PADDING */
-    .block-container {
-        padding-top: 3rem;
-        padding-bottom: 3rem;
-    }
+    /* REMOVE DEFAULT PADDING */
+    .block-container { padding-top: 2rem; padding-bottom: 3rem; }
 
     /* BUTTONS - BLACK PILL SHAPE */
     div.stButton > button {
@@ -60,20 +85,14 @@ st.markdown("""
         background-color: #333333;
         border-color: #333333;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    /* INPUT FIELDS */
-    .stTextInput > div > div > input {
+    /* MAIN INPUT FIELDS (Light theme) */
+    .main .stTextInput > div > div > input {
         background-color: #F9FAFB;
         color: #111111;
         border: 1px solid #E5E7EB;
-        border-radius: 8px;
         padding: 0.5rem;
-    }
-    .stTextInput > div > div > input:focus {
-        border-color: #000000;
-        box-shadow: none;
     }
 
     /* ISSUE CARDS (RED) */
@@ -110,42 +129,37 @@ st.markdown("""
         opacity: 0.8;
     }
 
-    /* CHECKBOX ALIGNMENT */
-    .stCheckbox {
-        padding-top: 30px; 
-    }
-    
-    /* LINK STYLING */
-    a { color: #666; text-decoration: none; }
-    a:hover { text-decoration: underline; color: #000; }
+    .stCheckbox { padding-top: 30px; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
-    # LOGO HANDLING
+    # LOGO HANDLING (Black PNG is inverted to white via CSS above)
+    # Width increased to 240 (50% larger than previous 160)
     try:
-        st.image("logo.png", width=160) 
+        st.image("logo.png", width=240) 
     except:
-        # Fallback if you forget to upload the file
         st.markdown("## Luxury Presence")
 
     st.markdown("### Configuration")
     
-    # API Key with Helper Link
+    # API Key with Helper Link (Styled for dark background)
     api_key = st.text_input("Gemini API Key", type="password")
     st.markdown(
         """<div style="margin-top: -10px; margin-bottom: 20px; font-size: 0.85rem;">
-        👉 <a href="https://aistudio.google.com/app/apikey" target="_blank">Get your API Key here</a>
+        👉 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #CCC; text-decoration: underline;">Get your API Key here</a>
         </div>""", 
         unsafe_allow_html=True
     )
     
     st.markdown("---")
-    st.caption("PFT | v2.0")
+    # Using HTML to force white color on caption
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v2.1</p>', unsafe_allow_html=True)
 
 # --- 4. MAIN INTERFACE ---
 st.title("QA Co-Pilot")
+st.markdown('<p style="color: #666; font-size: 1.1rem; font-weight: 300;">Automated audit for PRO WD</p>', unsafe_allow_html=True)
 
 # Spacer
 st.markdown("##") 
@@ -197,7 +211,7 @@ if st.button("Start Audit"):
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# --- 5. DISPLAY RESULTS (Interactive Cards) ---
+# --- 5. DISPLAY RESULTS ---
 if st.session_state.audit_results:
     st.markdown("### Results")
     results = st.session_state.audit_results
@@ -207,15 +221,10 @@ if st.session_state.audit_results:
     
     for i, item in enumerate(results):
         col_check, col_content = st.columns([0.5, 9.5])
-        
         with col_check:
-            # Unique key ensures state is remembered
             is_checked = st.checkbox("", key=f"fix_{i}")
-        
         with col_content:
-            # Dim the card if checked
             opacity = "0.4" if is_checked else "1.0"
-            
             st.markdown(f"""
             <div style="opacity: {opacity}; margin-bottom: 20px;">
                 <div class="issue-card">
@@ -229,7 +238,6 @@ if st.session_state.audit_results:
             </div>
             """, unsafe_allow_html=True)
 
-    # DOWNLOAD
     if results:
         st.download_button(
             "Download CSV", 
