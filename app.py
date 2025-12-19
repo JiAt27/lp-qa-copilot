@@ -17,57 +17,60 @@ st.set_page_config(
 if 'audit_results' not in st.session_state:
     st.session_state.audit_results = None
 
-# --- 2. LUXURY PRESENCE BRAND STYLING (High Contrast Theme) ---
+# --- 2. LUXURY PRESENCE BRAND STYLING (Modern Sans Theme) ---
 st.markdown("""
 <style>
-    /* IMPORT FONTS */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap');
+    /* IMPORT FONTS: Inter (as the reliable web-safe fallback) */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-    /* --- MAIN CONTENT AREA (Light/Onboarding Hub) --- */
-    .stApp {
-        background-color: #FFFFFF;
+    /* --- TYPOGRAPHY STACK --- */
+    /* Prioritizing the ABC fonts you requested, falling back to Inter */
+    
+    /* BODY / NORMAL TEXT */
+    .stApp, p, div, input, label {
+        font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
         color: #111111;
-        font-family: 'Inter', sans-serif;
+    }
+
+    /* HEADERS */
+    h1, h2, h3, h4, strong {
+        font-family: 'ABC Medium', 'Inter', sans-serif !important;
+        font-weight: 600;
+        color: #000000;
+        letter-spacing: -0.02em; /* Tighter tracking for that modern look */
     }
 
     /* --- SIDEBAR (Dark/Premium) --- */
     [data-testid="stSidebar"] {
-        background-color: #0F0F0F; /* LP Almost Black */
+        background-color: #0F0F0F; 
         border-right: 1px solid #222;
     }
     
-    /* SIDEBAR TEXT COLOR OVERRIDE */
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] div {
+    /* SIDEBAR TEXT OVERRIDE */
+    [data-testid="stSidebar"] * {
         color: #FFFFFF !important;
     }
-
-    /* LOGO COLOR INVERSION (Black PNG -> White) */
+    
+    /* LOGO INVERSION (Black PNG -> White) */
     [data-testid="stSidebar"] img {
-        filter: invert(1) brightness(2); /* This turns a black logo white */
+        filter: invert(1) brightness(2);
     }
 
-    /* SIDEBAR INPUT FIELDS (Dark theme) */
+    /* SIDEBAR INPUTS */
     [data-testid="stSidebar"] .stTextInput > div > div > input {
         background-color: #1A1A1A;
         color: #FFFFFF;
         border: 1px solid #333;
     }
 
-    /* --- TYPOGRAPHY & COMPONENTS --- */
+    /* --- UI ELEMENTS --- */
+    
     h1 {
-        font-family: 'Playfair Display', serif;
-        font-weight: 700;
-        font-size: 2.5rem;
-        color: #000000;
-        margin-bottom: 0rem;
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
     }
     
-    /* REMOVE DEFAULT PADDING */
+    /* REMOVE PADDING */
     .block-container { padding-top: 2rem; padding-bottom: 3rem; }
 
     /* BUTTONS - BLACK PILL SHAPE */
@@ -76,6 +79,7 @@ st.markdown("""
         color: #FFFFFF;
         border-radius: 8px;
         padding: 0.6rem 1.8rem;
+        font-family: 'ABC Medium', 'Inter', sans-serif;
         font-weight: 500;
         font-size: 0.95rem;
         border: 1px solid #000000;
@@ -87,7 +91,7 @@ st.markdown("""
         transform: translateY(-1px);
     }
 
-    /* MAIN INPUT FIELDS (Light theme) */
+    /* MAIN INPUT FIELDS */
     .main .stTextInput > div > div > input {
         background-color: #F9FAFB;
         color: #111111;
@@ -114,7 +118,7 @@ st.markdown("""
         padding: 16px;
         border-radius: 0 0 6px 6px;
         color: #166534;
-        font-family: 'Inter', monospace;
+        font-family: 'ABC Normal', 'Inter', monospace;
         font-size: 0.9rem;
     }
 
@@ -135,17 +139,15 @@ st.markdown("""
 
 # --- 3. SIDEBAR ---
 with st.sidebar:
-    # LOGO HANDLING (Black PNG is inverted to white via CSS above)
-    # Width increased to 240 (50% larger than previous 160)
+    # LOGO: Max width set to 170px as requested
     try:
-        st.image("logo.png", width=150
-            ) 
+        st.image("logo.png", width=170) 
     except:
         st.markdown("## Luxury Presence")
 
     st.markdown("### Configuration")
     
-    # API Key with Helper Link (Styled for dark background)
+    # API Key
     api_key = st.text_input("Gemini API Key", type="password")
     st.markdown(
         """<div style="margin-top: -10px; margin-bottom: 20px; font-size: 0.85rem;">
@@ -155,14 +157,12 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    # Using HTML to force white color on caption
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v2.1</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v2.2</p>', unsafe_allow_html=True)
 
 # --- 4. MAIN INTERFACE ---
 st.title("QA Co-Pilot")
 st.markdown('<p style="color: #666; font-size: 1.1rem; font-weight: 300;">Automated audit for PRO WD</p>', unsafe_allow_html=True)
 
-# Spacer
 st.markdown("##") 
 
 url_input = st.text_input("Website URL", placeholder="https://presencepreview.site/...")
@@ -175,6 +175,7 @@ if st.button("Start Audit"):
         with st.spinner("Analyzing content & logic..."):
             try:
                 genai.configure(api_key=api_key)
+                # Using the stable 1.5-flash model
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 # CRAWL
@@ -187,7 +188,7 @@ if st.button("Start Audit"):
                     links.append(f"'{a.get_text(strip=True)}' -> '{a['href']}'")
                 links_str = "\n".join(links[:50])
 
-                # ANALYZE (JSON OUTPUT)
+                # ANALYZE
                 prompt = f"""
                 You are a QA Specialist for Luxury Presence.
                 Analyze this website text and links.
@@ -212,7 +213,7 @@ if st.button("Start Audit"):
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# --- 5. DISPLAY RESULTS ---
+# --- 5. RESULTS ---
 if st.session_state.audit_results:
     st.markdown("### Results")
     results = st.session_state.audit_results
@@ -221,28 +222,3 @@ if st.session_state.audit_results:
         st.success("✅ No issues found!")
     
     for i, item in enumerate(results):
-        col_check, col_content = st.columns([0.5, 9.5])
-        with col_check:
-            is_checked = st.checkbox("", key=f"fix_{i}")
-        with col_content:
-            opacity = "0.4" if is_checked else "1.0"
-            st.markdown(f"""
-            <div style="opacity: {opacity}; margin-bottom: 20px;">
-                <div class="issue-card">
-                    <span class="card-label">🔴 {item['type']} • {item['loc']}</span>
-                    <strong>{item['issue']}</strong>
-                </div>
-                <div class="solution-card">
-                    <span class="card-label">🟢 SUGGESTED FIX</span>
-                    {item['fix']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    if results:
-        st.download_button(
-            "Download CSV", 
-            pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
-            "audit.csv", 
-            "text/csv"
-        )
