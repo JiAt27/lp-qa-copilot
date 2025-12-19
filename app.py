@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import google.generativeai as genai
 import pandas as pd
 import json
+import time
 
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(
@@ -42,7 +43,7 @@ with st.sidebar:
     dark_mode = st.toggle("Dark Mode", value=False)
     
     st.markdown("---")
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.2</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.3</p>', unsafe_allow_html=True)
 
 # --- 3. DYNAMIC CSS STYLING ---
 if dark_mode:
@@ -86,7 +87,6 @@ st.markdown(f"""
     }}
 
     /* --- TYPOGRAPHY --- */
-    /* We exclude buttons from the global override so their text stays visible */
     .stApp, p, div, input, label, span, h1, h2, h3, h4, strong {{
         font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
         color: {text_color};
@@ -118,8 +118,8 @@ st.markdown(f"""
         border: 1px solid {input_border} !important;
     }}
 
-    /* --- BUTTONS (Fix for invisible text) --- */
-    div.stButton > button {{
+    /* --- BUTTONS (Fix for BOTH Normal and Download Buttons) --- */
+    div.stButton > button, div.stDownloadButton > button {{
         background-color: {button_bg} !important;
         border-radius: 8px;
         padding: 0.6rem 1.8rem;
@@ -128,10 +128,10 @@ st.markdown(f"""
         transition: transform 0.1s;
     }}
     /* Force ALL text inside buttons to match the button_text color */
-    div.stButton > button * {{
+    div.stButton > button *, div.stDownloadButton > button * {{
         color: {button_text} !important;
     }}
-    div.stButton > button:hover {{
+    div.stButton > button:hover, div.stDownloadButton > button:hover {{
         transform: translateY(-2px);
         opacity: 0.9;
     }}
@@ -151,10 +151,8 @@ st.markdown(f"""
     }}
     
     /* --- PADDING & SPACING --- */
-    /* Increased top padding to 6rem to fix the 'too close to top' issue */
     .block-container {{ padding-top: 6rem; padding-bottom: 3rem; }}
     
-    /* Results Header */
     h3.results-header {{ color: {text_color} !important; margin-top: 2rem; }}
 </style>
 """, unsafe_allow_html=True)
@@ -163,7 +161,6 @@ st.markdown(f"""
 st.markdown('<h1 class="main-title">QA Co-Pilot</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle-text">Automated audit for PRO WD</p>', unsafe_allow_html=True)
 
-# Added standard spacer instead of markdown "##"
 st.write("") 
 st.write("") 
 
@@ -174,45 +171,59 @@ if st.button("Start Audit"):
     if not api_key or not url_input:
         st.error("⚠️ Please provide both an API Key and a URL.")
     else:
-        with st.spinner("Analyzing content & logic..."):
-            try:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                
-                # CRAWL
-                response = requests.get(url_input, timeout=10)
-                soup = BeautifulSoup(response.content, 'html.parser')
-                visible_text = soup.get_text(separator=' ', strip=True)[:15000]
-                
-                links = []
-                for a in soup.find_all('a', href=True):
-                    links.append(f"'{a.get_text(strip=True)}' -> '{a['href']}'")
-                links_str = "\n".join(links[:50])
+        # PROGRESS BAR INITIALIZATION
+        progress_bar = st.progress(0, text="Initializing...")
+        
+        try:
+            # STEP 1: SETUP (10%)
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            progress_bar.progress(10, text="⚙️ AI Brain Ready...")
+            
+            # STEP 2: CRAWL (40%)
+            progress_bar.progress(20, text="🕷️ Crawling website content...")
+            response = requests.get(url_input, timeout=10)
+            soup = BeautifulSoup(response.content, 'html.parser')
+            visible_text = soup.get_text(separator=' ', strip=True)[:15000]
+            progress_bar.progress(40, text="📖 Extracting text and links...")
+            
+            links = []
+            for a in soup.find_all('a', href=True):
+                links.append(f"'{a.get_text(strip=True)}' -> '{a['href']}'")
+            links_str = "\n".join(links[:50])
 
-                # ANALYZE
-                prompt = f"""
-                You are a QA Specialist for Luxury Presence.
-                Analyze this website text and links.
-                
-                TEXT: {visible_text}
-                LINKS: {links_str}
-                
-                TASK: Find spelling errors, grammar issues, and BROKEN LOGIC (e.g. 'Contact' link goes to 'Home').
-                Ignore generic real estate terms.
-                
-                RETURN JSON ONLY:
-                [
-                    {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}},
-                    {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc": "Footer"}}
-                ]
-                """
-                
-                result = model.generate_content(prompt)
-                clean_json = result.text.replace("```json", "").replace("```", "").strip()
-                st.session_state.audit_results = json.loads(clean_json)
-                
-            except Exception as e:
-                st.error(f"Error: {e}")
+            # STEP 3: ANALYZE (70%)
+            progress_bar.progress(60, text="🧠 Analyzing logic with Gemini...")
+            prompt = f"""
+            You are a QA Specialist for Luxury Presence.
+            Analyze this website text and links.
+            
+            TEXT: {visible_text}
+            LINKS: {links_str}
+            
+            TASK: Find spelling errors, grammar issues, and BROKEN LOGIC (e.g. 'Contact' link goes to 'Home').
+            Ignore generic real estate terms.
+            
+            RETURN JSON ONLY:
+            [
+                {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}},
+                {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc": "Footer"}}
+            ]
+            """
+            
+            result = model.generate_content(prompt)
+            progress_bar.progress(85, text="✨ Formatting results...")
+            
+            # STEP 4: FINISH (100%)
+            clean_json = result.text.replace("```json", "").replace("```", "").strip()
+            st.session_state.audit_results = json.loads(clean_json)
+            progress_bar.progress(100, text="✅ Audit Complete!")
+            time.sleep(0.5) # Small pause to see 100%
+            progress_bar.empty() # Remove bar to show results cleanly
+            
+        except Exception as e:
+            st.error(f"Error: {e}")
+            progress_bar.empty()
 
 # --- 5. RESULTS ---
 if st.session_state.audit_results:
@@ -225,7 +236,6 @@ if st.session_state.audit_results:
     for i, item in enumerate(results):
         col_check, col_content = st.columns([0.5, 9.5])
         with col_check:
-            # Simplified checkbox key to avoid "Key" errors
             is_checked = st.checkbox("", key=f"check_{i}")
         with col_content:
             opacity = "0.4" if is_checked else "1.0"
@@ -243,9 +253,12 @@ if st.session_state.audit_results:
             """, unsafe_allow_html=True)
 
     if results:
+        # Added container to ensure button style applies
+        st.markdown('<div class="download-container">', unsafe_allow_html=True)
         st.download_button(
             "Download CSV", 
             pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
             "audit.csv", 
             "text/csv"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
