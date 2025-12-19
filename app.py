@@ -213,12 +213,4 @@ if st.button("Start Audit"):
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# --- 5. RESULTS ---
-if st.session_state.audit_results:
-    st.markdown("### Results")
-    results = st.session_state.audit_results
-    
-    if len(results) == 0:
-        st.success("✅ No issues found!")
-    
-    for i, item in enumerate(results):
+# --- 5
