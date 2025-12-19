@@ -138,7 +138,7 @@ with st.sidebar:
     # LOGO HANDLING (Black PNG is inverted to white via CSS above)
     # Width increased to 240 (50% larger than previous 160)
     try:
-        st.image("logo.png", width=190
+        st.image("logo.png", width=150
             ) 
     except:
         st.markdown("## Luxury Presence")
