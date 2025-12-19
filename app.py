@@ -17,129 +17,9 @@ st.set_page_config(
 if 'audit_results' not in st.session_state:
     st.session_state.audit_results = None
 
-# --- 2. LUXURY PRESENCE BRAND STYLING (Modern Sans Theme) ---
-st.markdown("""
-<style>
-    /* IMPORT FONTS: Inter (as the reliable web-safe fallback) */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
-    /* --- TYPOGRAPHY STACK --- */
-    /* Prioritizing the ABC fonts you requested, falling back to Inter */
-    
-    /* BODY / NORMAL TEXT */
-    .stApp, p, div, input, label {
-        font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
-        color: #111111;
-    }
-
-    /* HEADERS */
-    h1, h2, h3, h4, strong {
-        font-family: 'ABC Medium', 'Inter', sans-serif !important;
-        font-weight: 600;
-        color: #000000;
-        letter-spacing: -0.02em; /* Tighter tracking for that modern look */
-    }
-
-    /* --- SIDEBAR (Dark/Premium) --- */
-    [data-testid="stSidebar"] {
-        background-color: #0F0F0F; 
-        border-right: 1px solid #222;
-    }
-    
-    /* SIDEBAR TEXT OVERRIDE */
-    [data-testid="stSidebar"] * {
-        color: #FFFFFF !important;
-    }
-    
-    /* LOGO INVERSION (Black PNG -> White) */
-    [data-testid="stSidebar"] img {
-        filter: invert(1) brightness(2);
-    }
-
-    /* SIDEBAR INPUTS */
-    [data-testid="stSidebar"] .stTextInput > div > div > input {
-        background-color: #1A1A1A;
-        color: #FFFFFF;
-        border: 1px solid #333;
-    }
-
-    /* --- UI ELEMENTS --- */
-    
-    h1 {
-        font-size: 2.2rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    /* REMOVE PADDING */
-    .block-container { padding-top: 2rem; padding-bottom: 3rem; }
-
-    /* BUTTONS - BLACK PILL SHAPE */
-    div.stButton > button {
-        background-color: #000000;
-        color: #FFFFFF;
-        border-radius: 8px;
-        padding: 0.6rem 1.8rem;
-        font-family: 'ABC Medium', 'Inter', sans-serif;
-        font-weight: 500;
-        font-size: 0.95rem;
-        border: 1px solid #000000;
-        transition: all 0.2s ease;
-    }
-    div.stButton > button:hover {
-        background-color: #333333;
-        border-color: #333333;
-        transform: translateY(-1px);
-    }
-
-    /* MAIN INPUT FIELDS */
-    .main .stTextInput > div > div > input {
-        background-color: #F9FAFB;
-        color: #111111;
-        border: 1px solid #E5E7EB;
-        padding: 0.5rem;
-    }
-
-    /* ISSUE CARDS (RED) */
-    .issue-card {
-        background-color: #FEF2F2;
-        border: 1px solid #FEE2E2;
-        border-left: 4px solid #EF4444;
-        padding: 16px;
-        border-radius: 6px 6px 0 0;
-        color: #991B1B;
-    }
-    
-    /* SOLUTION CARDS (GREEN) */
-    .solution-card {
-        background-color: #F0FDF4;
-        border: 1px solid #DCFCE7;
-        border-left: 4px solid #22C55E;
-        border-top: none;
-        padding: 16px;
-        border-radius: 0 0 6px 6px;
-        color: #166534;
-        font-family: 'ABC Normal', 'Inter', monospace;
-        font-size: 0.9rem;
-    }
-
-    /* LABELS */
-    .card-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 700;
-        margin-bottom: 4px;
-        display: block;
-        opacity: 0.8;
-    }
-
-    .stCheckbox { padding-top: 30px; }
-</style>
-""", unsafe_allow_html=True)
-
-# --- 3. SIDEBAR ---
+# --- 2. SIDEBAR CONFIGURATION ---
 with st.sidebar:
-    # LOGO: Max width set to 170px as requested
+    # LOGO HANDLING
     try:
         st.image("logo.png", width=170) 
     except:
@@ -157,11 +37,142 @@ with st.sidebar:
     )
     
     st.markdown("---")
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v2.2</p>', unsafe_allow_html=True)
+    
+    # THEME TOGGLE
+    dark_mode = st.toggle("Dark Mode", value=False)
+    
+    st.markdown("---")
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.0</p>', unsafe_allow_html=True)
+
+# --- 3. DYNAMIC CSS STYLING ---
+# We define colors based on the toggle state
+if dark_mode:
+    # DARK MODE PALETTE
+    main_bg = "#0F0F0F"
+    text_color = "#FFFFFF"
+    input_bg = "#1A1A1A"
+    input_border = "#333333"
+    card_issue_bg = "#2A1C1C" # Dark Muted Red
+    card_issue_border = "#EF4444"
+    card_issue_text = "#FCA5A5"
+    card_fix_bg = "#1C2A21" # Dark Muted Green
+    card_fix_border = "#22C55E"
+    card_fix_text = "#86EFAC"
+    button_bg = "#C5A065" # Gold for Dark Mode
+    button_text = "#000000"
+    subtitle_color = "#AAAAAA"
+else:
+    # LIGHT MODE PALETTE (Default)
+    main_bg = "#FFFFFF"
+    text_color = "#111111"
+    input_bg = "#F9FAFB"
+    input_border = "#E5E7EB"
+    card_issue_bg = "#FEF2F2"
+    card_issue_border = "#FEE2E2"
+    card_issue_text = "#991B1B"
+    card_fix_bg = "#F0FDF4"
+    card_fix_border = "#DCFCE7"
+    card_fix_text = "#166534"
+    button_bg = "#000000" # Black for Light Mode
+    button_text = "#FFFFFF"
+    subtitle_color = "#666666"
+
+st.markdown(f"""
+<style>
+    /* IMPORT FONTS */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+    /* --- MAIN CONTAINER THEME --- */
+    [data-testid="stAppViewContainer"] {{
+        background-color: {main_bg} !important;
+    }}
+    .main {{
+        background-color: {main_bg} !important;
+    }}
+
+    /* --- TYPOGRAPHY --- */
+    .stApp, p, div, input, label, span {{
+        font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
+        color: {text_color} !important;
+    }}
+    
+    h1, h2, h3, h4, strong {{
+        font-family: 'ABC Medium', 'Inter', sans-serif !important;
+        font-weight: 600;
+        color: {text_color} !important;
+    }}
+    
+    p.subtitle-text {{
+        color: {subtitle_color} !important;
+        font-size: 1.1rem;
+        font-weight: 300;
+    }}
+
+    /* --- SIDEBAR (Always Dark for Consistency) --- */
+    [data-testid="stSidebar"] {{
+        background-color: #0F0F0F !important; 
+        border-right: 1px solid #222;
+    }}
+    [data-testid="stSidebar"] * {{ color: #FFFFFF !important; }}
+    [data-testid="stSidebar"] img {{ filter: invert(1) brightness(2); }}
+    [data-testid="stSidebar"] .stTextInput > div > div > input {{
+        background-color: #1A1A1A !important;
+        color: #FFFFFF !important;
+        border: 1px solid #333 !important;
+    }}
+
+    /* --- INPUT FIELDS --- */
+    .main .stTextInput > div > div > input {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {input_border} !important;
+    }}
+    
+    /* --- BUTTONS --- */
+    div.stButton > button {{
+        background-color: {button_bg} !important;
+        color: {button_text} !important;
+        border-radius: 8px;
+        padding: 0.6rem 1.8rem;
+        font-weight: 500;
+        border: 1px solid {button_bg} !important;
+        transition: transform 0.1s;
+    }}
+    div.stButton > button:hover {{
+        transform: translateY(-2px);
+        opacity: 0.9;
+        color: {button_text} !important;
+    }}
+
+    /* --- CARDS --- */
+    .issue-card {{
+        background-color: {card_issue_bg};
+        border-left: 4px solid #EF4444;
+        padding: 16px;
+        border-radius: 6px 6px 0 0;
+    }}
+    .issue-text {{ color: {card_issue_text} !important; font-weight: 600; }}
+    
+    .solution-card {{
+        background-color: {card_fix_bg};
+        border-left: 4px solid #22C55E;
+        padding: 16px;
+        border-radius: 0 0 6px 6px;
+    }}
+    .fix-text {{ color: {card_fix_text} !important; font-family: monospace; font-size: 0.9rem; }}
+
+    /* --- MISC --- */
+    .block-container {{ padding-top: 2rem; padding-bottom: 3rem; }}
+    .stCheckbox {{ padding-top: 30px; }}
+    
+    /* Results Header */
+    h3.results-header {{ color: {text_color} !important; }}
+</style>
+""", unsafe_allow_html=True)
 
 # --- 4. MAIN INTERFACE ---
-st.title("QA Co-Pilot")
-st.markdown('<p style="color: #666; font-size: 1.1rem; font-weight: 300;">Automated audit for PRO WD</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">QA Co-Pilot</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle-text">Automated audit for PRO WD</p>', unsafe_allow_html=True)
 
 st.markdown("##") 
 
@@ -175,7 +186,6 @@ if st.button("Start Audit"):
         with st.spinner("Analyzing content & logic..."):
             try:
                 genai.configure(api_key=api_key)
-                # Using the stable 1.5-flash model
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 # CRAWL
@@ -213,4 +223,37 @@ if st.button("Start Audit"):
             except Exception as e:
                 st.error(f"Error: {e}")
 
-# --- 5
+# --- 5. RESULTS ---
+if st.session_state.audit_results:
+    st.markdown('<h3 class="results-header">Results</h3>', unsafe_allow_html=True)
+    results = st.session_state.audit_results
+    
+    if len(results) == 0:
+        st.success("✅ No issues found!")
+    
+    for i, item in enumerate(results):
+        col_check, col_content = st.columns([0.5, 9.5])
+        with col_check:
+            is_checked = st.checkbox("", key=f"fix_{i}")
+        with col_content:
+            opacity = "0.4" if is_checked else "1.0"
+            st.markdown(f"""
+            <div style="opacity: {opacity}; margin-bottom: 20px;">
+                <div class="issue-card">
+                    <span class="card-label" style="color:{card_issue_text};">🔴 {item['type']} • {item['loc']}</span>
+                    <div class="issue-text">{item['issue']}</div>
+                </div>
+                <div class="solution-card">
+                    <span class="card-label" style="color:{card_fix_text};">🟢 SUGGESTED FIX</span>
+                    <div class="fix-text">{item['fix']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    if results:
+        st.download_button(
+            "Download CSV", 
+            pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
+            "audit.csv", 
+            "text/csv"
+        )
