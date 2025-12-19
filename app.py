@@ -5,6 +5,7 @@ import google.generativeai as genai
 import pandas as pd
 import json
 import time
+from urllib.parse import urljoin, urlparse
 
 # --- 1. CONFIGURATION & STATE ---
 st.set_page_config(
@@ -18,36 +19,27 @@ st.set_page_config(
 if 'audit_results' not in st.session_state:
     st.session_state.audit_results = []
 
-# --- 2. SIDEBAR CONFIGURATION ---
+# --- 2. SIDEBAR ---
 with st.sidebar:
-    # LOGO HANDLING
     try:
         st.image("logo.png", width=170) 
     except:
         st.markdown("## Luxury Presence")
 
     st.markdown("### Configuration")
-    
-    # API Key
     api_key = st.text_input("Gemini API Key", type="password")
-    st.markdown(
-        """<div style="margin-top: -10px; margin-bottom: 20px; font-size: 0.85rem;">
-        👉 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #CCC; text-decoration: underline;">Get your API Key here</a>
-        </div>""", 
-        unsafe_allow_html=True
-    )
+    
+    # NEW: CRAWL LIMIT SETTING
+    st.markdown("### Scan Settings")
+    max_pages = st.slider("Max Pages to Scan", min_value=1, max_value=10, value=3, help="Higher = Slower but more complete.")
     
     st.markdown("---")
-    
-    # THEME TOGGLE
     dark_mode = st.toggle("Dark Mode", value=False)
-    
     st.markdown("---")
-    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v3.3</p>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #666; font-size: 0.8rem;">PFT | v4.0 (Multi-Page)</p>', unsafe_allow_html=True)
 
-# --- 3. DYNAMIC CSS STYLING ---
+# --- 3. DYNAMIC STYLING (SAME AS BEFORE) ---
 if dark_mode:
-    # DARK MODE PALETTE
     main_bg = "#0F0F0F"
     text_color = "#FFFFFF"
     input_bg = "#1A1A1A"
@@ -60,7 +52,6 @@ if dark_mode:
     button_text = "#000000"
     subtitle_color = "#AAAAAA"
 else:
-    # LIGHT MODE PALETTE (Default)
     main_bg = "#FFFFFF"
     text_color = "#111111"
     input_bg = "#F9FAFB"
@@ -75,50 +66,20 @@ else:
 
 st.markdown(f"""
 <style>
-    /* IMPORT FONTS */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
-    /* --- MAIN CONTAINER THEME --- */
-    [data-testid="stAppViewContainer"] {{
-        background-color: {main_bg} !important;
-    }}
-    .main {{
-        background-color: {main_bg} !important;
-    }}
-
-    /* --- TYPOGRAPHY --- */
+    [data-testid="stAppViewContainer"] {{ background-color: {main_bg} !important; }}
+    .main {{ background-color: {main_bg} !important; }}
     .stApp, p, div, input, label, span, h1, h2, h3, h4, strong {{
         font-family: 'ABC Normal', 'Neutral Regular', 'Inter', sans-serif !important;
         color: {text_color};
     }}
-    
-    p.subtitle-text {{
-        color: {subtitle_color} !important;
-        font-size: 1.1rem;
-        font-weight: 300;
-    }}
-
-    /* --- SIDEBAR (Always Dark) --- */
-    [data-testid="stSidebar"] {{
-        background-color: #0F0F0F !important; 
-        border-right: 1px solid #222;
-    }}
+    p.subtitle-text {{ color: {subtitle_color} !important; font-size: 1.1rem; font-weight: 300; }}
+    [data-testid="stSidebar"] {{ background-color: #0F0F0F !important; border-right: 1px solid #222; }}
     [data-testid="stSidebar"] * {{ color: #FFFFFF !important; }}
     [data-testid="stSidebar"] img {{ filter: invert(1) brightness(2); }}
-    [data-testid="stSidebar"] .stTextInput > div > div > input {{
-        background-color: #1A1A1A !important;
-        color: #FFFFFF !important;
-        border: 1px solid #333 !important;
-    }}
-
-    /* --- INPUT FIELDS --- */
-    .main .stTextInput > div > div > input {{
-        background-color: {input_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {input_border} !important;
-    }}
-
-    /* --- BUTTONS (Fix for BOTH Normal and Download Buttons) --- */
+    [data-testid="stSidebar"] .stTextInput > div > div > input {{ background-color: #1A1A1A !important; color: #FFFFFF !important; border: 1px solid #333 !important; }}
+    .main .stTextInput > div > div > input {{ background-color: {input_bg} !important; color: {text_color} !important; border: 1px solid {input_border} !important; }}
+    
     div.stButton > button, div.stDownloadButton > button {{
         background-color: {button_bg} !important;
         border-radius: 8px;
@@ -127,102 +88,119 @@ st.markdown(f"""
         border: 1px solid {button_bg} !important;
         transition: transform 0.1s;
     }}
-    /* Force ALL text inside buttons to match the button_text color */
-    div.stButton > button *, div.stDownloadButton > button * {{
-        color: {button_text} !important;
-    }}
-    div.stButton > button:hover, div.stDownloadButton > button:hover {{
-        transform: translateY(-2px);
-        opacity: 0.9;
-    }}
+    div.stButton > button *, div.stDownloadButton > button * {{ color: {button_text} !important; }}
+    div.stButton > button:hover, div.stDownloadButton > button:hover {{ transform: translateY(-2px); opacity: 0.9; }}
 
-    /* --- CARDS --- */
-    .issue-card {{
-        background-color: {card_issue_bg};
-        border-left: 4px solid #EF4444;
-        padding: 16px;
-        border-radius: 6px 6px 0 0;
-    }}
-    .solution-card {{
-        background-color: {card_fix_bg};
-        border-left: 4px solid #22C55E;
-        padding: 16px;
-        border-radius: 0 0 6px 6px;
-    }}
-    
-    /* --- PADDING & SPACING --- */
+    .issue-card {{ background-color: {card_issue_bg}; border-left: 4px solid #EF4444; padding: 16px; border-radius: 6px 6px 0 0; }}
+    .solution-card {{ background-color: {card_fix_bg}; border-left: 4px solid #22C55E; padding: 16px; border-radius: 0 0 6px 6px; }}
     .block-container {{ padding-top: 6rem; padding-bottom: 3rem; }}
-    
     h3.results-header {{ color: {text_color} !important; margin-top: 2rem; }}
+    .page-badge {{ background-color: #333; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 8px; display: inline-block; }}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. MAIN INTERFACE ---
+# --- 4. APP LOGIC ---
 st.markdown('<h1 class="main-title">QA Co-Pilot</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle-text">Automated audit for PRO WD</p>', unsafe_allow_html=True)
-
-st.write("") 
+st.markdown('<p class="subtitle-text">Full site audit for PRO WD</p>', unsafe_allow_html=True)
 st.write("") 
 
 url_input = st.text_input("Website URL", placeholder="https://presencepreview.site/...")
 
-# ACTION BUTTON
-if st.button("Start Audit"):
+if st.button("Start Full Audit"):
     if not api_key or not url_input:
         st.error("⚠️ Please provide both an API Key and a URL.")
     else:
-        # PROGRESS BAR INITIALIZATION
+        # PROGRESS & SETUP
         progress_bar = st.progress(0, text="Initializing...")
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        all_issues = []
+        visited_urls = set()
+        urls_to_visit = [url_input]
+        base_domain = urlparse(url_input).netloc
         
         try:
-            # STEP 1: SETUP (10%)
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            progress_bar.progress(10, text="⚙️ AI Brain Ready...")
-            
-            # STEP 2: CRAWL (40%)
-            progress_bar.progress(20, text="🕷️ Crawling website content...")
+            # --- STEP A: FIND PAGES (Crawl Home) ---
+            progress_bar.progress(10, text="🕷️ Mapping website structure...")
             response = requests.get(url_input, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
-            visible_text = soup.get_text(separator=' ', strip=True)[:15000]
-            progress_bar.progress(40, text="📖 Extracting text and links...")
             
-            links = []
+            # Find internal links to add to queue
             for a in soup.find_all('a', href=True):
-                links.append(f"'{a.get_text(strip=True)}' -> '{a['href']}'")
-            links_str = "\n".join(links[:50])
+                link = a['href']
+                full_url = urljoin(url_input, link)
+                parsed = urlparse(full_url)
+                
+                # Only internal links, no pdfs/images
+                if parsed.netloc == base_domain and full_url not in visited_urls:
+                    if not any(x in full_url for x in ['.jpg', '.png', '.pdf', 'mailto:', 'tel:']):
+                        if full_url not in urls_to_visit:
+                            urls_to_visit.append(full_url)
 
-            # STEP 3: ANALYZE (70%)
-            progress_bar.progress(60, text="🧠 Analyzing logic with Gemini...")
-            prompt = f"""
-            You are a QA Specialist for Luxury Presence.
-            Analyze this website text and links.
+            # Limit pages
+            urls_to_visit = urls_to_visit[:max_pages]
             
-            TEXT: {visible_text}
-            LINKS: {links_str}
+            # --- STEP B: LOOP THROUGH PAGES ---
+            total_pages = len(urls_to_visit)
             
-            TASK: Find spelling errors, grammar issues, and BROKEN LOGIC (e.g. 'Contact' link goes to 'Home').
-            Ignore generic real estate terms.
-            
-            RETURN JSON ONLY:
-            [
-                {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}},
-                {{"type": "Logic", "issue": "Link mismatch", "fix": "Change href", "loc": "Footer"}}
-            ]
-            """
-            
-            result = model.generate_content(prompt)
-            progress_bar.progress(85, text="✨ Formatting results...")
-            
-            # STEP 4: FINISH (100%)
-            clean_json = result.text.replace("```json", "").replace("```", "").strip()
-            st.session_state.audit_results = json.loads(clean_json)
-            progress_bar.progress(100, text="✅ Audit Complete!")
-            time.sleep(0.5) # Small pause to see 100%
-            progress_bar.empty() # Remove bar to show results cleanly
-            
+            for i, page_url in enumerate(urls_to_visit):
+                current_step = i + 1
+                progress_percent = int(20 + ((current_step / total_pages) * 70))
+                progress_bar.progress(progress_percent, text=f"🔍 Analyzing Page {current_step}/{total_pages}: {page_url}...")
+                
+                try:
+                    # Get Page Content
+                    page_resp = requests.get(page_url, timeout=10)
+                    page_soup = BeautifulSoup(page_resp.content, 'html.parser')
+                    visible_text = page_soup.get_text(separator=' ', strip=True)[:10000] # Limit text per page
+                    
+                    # Extract Page Links for Logic Check
+                    page_links = []
+                    for a in page_soup.find_all('a', href=True):
+                        page_links.append(f"'{a.get_text(strip=True)}' -> '{a['href']}'")
+                    links_str = "\n".join(page_links[:30])
+                    
+                    # AI Audit
+                    prompt = f"""
+                    Role: QA Specialist for Luxury Presence.
+                    Context: Auditing a specific page: {page_url}
+                    
+                    TEXT CONTENT: {visible_text}
+                    LINKS ON PAGE: {links_str}
+                    
+                    TASK: Find spelling, grammar, and LOGIC errors (e.g. 'Contact' link goes to 'Home').
+                    Ignore generic real estate terms.
+                    
+                    RETURN JSON ONLY:
+                    [
+                        {{"type": "Spelling", "issue": "Word", "fix": "Correction", "loc": "Section Name"}}
+                    ]
+                    """
+                    
+                    ai_resp = model.generate_content(prompt)
+                    clean_json = ai_resp.text.replace("```json", "").replace("```", "").strip()
+                    page_issues = json.loads(clean_json)
+                    
+                    # Tag issues with the Page URL
+                    for issue in page_issues:
+                        issue['page_url'] = page_url
+                        all_issues.append(issue)
+                        
+                except Exception as e:
+                    print(f"Skipped page {page_url}: {e}")
+                    
+                visited_urls.add(page_url)
+                time.sleep(0.5) # Polite delay
+
+            # --- STEP C: FINISH ---
+            progress_bar.progress(100, text="✅ Full Site Audit Complete!")
+            st.session_state.audit_results = all_issues
+            time.sleep(1)
+            progress_bar.empty()
+
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Critical Error: {e}")
             progress_bar.empty()
 
 # --- 5. RESULTS ---
@@ -231,7 +209,7 @@ if st.session_state.audit_results:
     results = st.session_state.audit_results
     
     if len(results) == 0:
-        st.success("✅ No issues found!")
+        st.success("✅ No issues found across scanned pages!")
     
     for i, item in enumerate(results):
         col_check, col_content = st.columns([0.5, 9.5])
@@ -239,8 +217,13 @@ if st.session_state.audit_results:
             is_checked = st.checkbox("", key=f"check_{i}")
         with col_content:
             opacity = "0.4" if is_checked else "1.0"
+            
+            # Show Page URL badge if it exists
+            page_badge = f'<div class="page-badge">📄 {item.get("page_url", "Unknown Page")}</div>'
+            
             st.markdown(f"""
             <div style="opacity: {opacity}; margin-bottom: 20px;">
+                {page_badge}
                 <div class="issue-card">
                     <span class="card-label" style="color:{card_issue_text};">🔴 {item['type']} • {item['loc']}</span>
                     <div style="color:{card_issue_text}; font-weight:600;">{item['issue']}</div>
@@ -253,12 +236,11 @@ if st.session_state.audit_results:
             """, unsafe_allow_html=True)
 
     if results:
-        # Added container to ensure button style applies
         st.markdown('<div class="download-container">', unsafe_allow_html=True)
         st.download_button(
-            "Download CSV", 
+            "Download Master Report (CSV)", 
             pd.DataFrame(results).to_csv(index=False).encode('utf-8'), 
-            "audit.csv", 
+            "full_audit.csv", 
             "text/csv"
         )
         st.markdown('</div>', unsafe_allow_html=True)
